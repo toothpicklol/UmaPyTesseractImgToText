@@ -37,10 +37,8 @@ def jsonProcess(skill,type):
     for i in skill:        
         print("skill:--------------"+i+"---end")
         choRule=round(len(i)/2)-1
-        if(len(i)<=2):
-            choRule=1
         if(len(i)<=3):
-            choRule=2
+            choRule=1
         for j in data:
             for k in j["choices"]:                
                 if len(skill)==len(j["choices"]):
@@ -117,15 +115,14 @@ def cv2Process(img,type):
         counter,hierarchy=cv2.findContours(binary,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(copy,counter,-1,(0,0,255),3)
         
-        
         for i in counter:
             #print( cv2.contourArea(i))
             if cv2.contourArea(i)>18000:
                 count+=1
-                
-            
-        
-    data=(pytesseract.image_to_string(img,lang="jpn",config='--psm 6 --oem 3'))
+    if count>=2:
+        data=(pytesseract.image_to_string(img,lang="jpn",config='--psm 6 --oem 3'))
+    else:
+        data=""
     if(type==0):
         data=data.replace(" ","")
         data=data.split("\n")
@@ -134,13 +131,19 @@ def cv2Process(img,type):
         data=data.split("\n")
         data.pop()
         if (len(data)<count&count<=7):
-            while(len(data)!=len(counter)):
+            while(len(data)!=count):
                 data.append("null")
                 
-#     cv2.imshow('My Image', copy)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-    return data
+    # cv2.imshow('My Image', copy)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    # print(count)
+    # print(len(data))
+    # print(data)
+    if count!=len(data):
+        return []
+    else:
+        return data
 
 def randomColor():
     import random
