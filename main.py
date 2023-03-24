@@ -12,6 +12,11 @@ def screenshot():
     import numpy as np
     
     window = pygetwindow.getWindowsWithTitle('umamusume')[0]
+    left=window.left
+    top=window.top
+    if top !=0 or window.height!=1047:
+        window.resizeTo(583,1047)
+        window.moveTo(left,0)
     top=window.top
     left=window.left
     img = pyautogui.screenshot(region=(left+10,top+30,window.width-20,window.height-45))
@@ -40,10 +45,11 @@ def jsonProcess(skill,type):
         if(len(i)<=3):
             choRule=1
         for j in data:
-            for k in j["choices"]:                
+            for k in j["choices"]:
                 if len(skill)==len(j["choices"]):
-                    if len(k['n'])>len(i)-2 and len(k['n'])<len(i)+2:
-                        distance2 = Levenshtein.distance(i,k['n'])
+                    if len(k['n'])>=len(i)-2 and len(k['n'])<=len(i)+2:
+                        distance2 = Levenshtein.distance(i,k['n'])                       
+                            
                         if(distance2<=choRule):
                             j["distance2"]=distance2
                             if j not in choice:
