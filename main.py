@@ -10,13 +10,26 @@ def screenshot():
     import pygetwindow    
     import pyautogui    
     import numpy as np
+    from ctypes import windll
     
     window = pygetwindow.getWindowsWithTitle('umamusume')[0]
+    h = windll.user32.FindWindowA(b'Shell_TrayWnd', None)
+    
     left=window.left
     top=window.top
-    if top !=0 or window.height!=1047:
+    #print(window.size)
+    
+    
+    if window.width <window.height and (top !=0 or (window.height!=1047) ):
+        windll.user32.ShowWindow(h, 9)
         window.resizeTo(583,1047)
         window.moveTo(left,0)
+    elif window.width >window.height:
+        windll.user32.ShowWindow(h, 0)
+        window.resizeTo(1940,1120)
+        window.moveTo(-10,-30)
+        
+        
     top=window.top
     left=window.left
     img = pyautogui.screenshot(region=(left+10,top+30,window.width-20,window.height-45))
