@@ -52,17 +52,20 @@ def jsonProcess(skill,type):
     choice=[]
     tmp=None
     
+    
+
+
     for i in skill:        
         print("skill:--------------"+i+"---end")
         choRule=round(len(i)/2)-1
         if(len(i)<=3):
             choRule=1
         for j in data:
+           
             for k in j["choices"]:
                 if len(skill)==len(j["choices"]):
                     if len(k['n'])>=len(i)-2 and len(k['n'])<=len(i)+2:
-                        distance2 = Levenshtein.distance(i,k['n'])                       
-                            
+                        distance2 = Levenshtein.distance(i,k['n'])
                         if(distance2<=choRule):
                             j["distance2"]=distance2
                             if j not in choice:
@@ -74,9 +77,39 @@ def jsonProcess(skill,type):
                     tmp=choice[i]
                     choice[i]=choice[j]
                     choice[j]=tmp
+                elif choice[j]["distance2"]==choice[i]["distance2"]:
+                    tmpA=0
+                    tmpB=0
+                    for l in range(len(choice[i]["choices"])):
+                        # print("--------skill----------")
+                        # print(skill[l])
+                        # print("-----------------------")
+                        
+                        # print("--------target----------")
+                        # print(choice[i]["choices"][l]["n"])
+                        # print("-----------------------")
+                        tmpA += Levenshtein.distance(choice[i]["choices"][l]["n"],skill[l])
+                        #print(tmpA)
+                    for k in range(len(choice[j]["choices"])):
+                        # print("--------skill----------")
+                        # print(skill[k])
+                        # print("-----------------------")
+                        
+                        # print("--------target----------")
+                        # print(choice[j]["choices"][k]["n"])
+                        # print("-----------------------")
+                        tmpB += Levenshtein.distance(choice[j]["choices"][k]["n"],skill[k])
+                        #print(tmpB)
+
+                    if tmpB<tmpA:
+                        tmp=choice[i]
+                        choice[i]=choice[j]
+                        choice[j]=tmp
+                        
     if len(choice)>=1:
+        #print(choice)
         tmp=choice[0]
-    print (tmp)
+    #print (tmp)
     return tmp
     
 
