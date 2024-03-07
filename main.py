@@ -44,15 +44,11 @@ def screenshot(mode):
     top = window.top
     left = window.left
 
-    if mode == 0:
-        print("0 事件模式")
-        img = pyautogui.screenshot(region=(left + 10, top + 30, window.width - 20, window.height - 45))
-        open_cv_image = np.array(img)
-        open_cv_image = open_cv_image[:, :, ::-1].copy()
-        data = processScreenshot(open_cv_image)
-        return data
-    else:
-        print("1 技能模式")
+    img = pyautogui.screenshot(region=(left + 10, top + 30, window.width - 20, window.height - 45))
+    open_cv_image = np.array(img)
+    open_cv_image = open_cv_image[:, :, ::-1].copy()
+    data = processScreenshot(open_cv_image, mode)
+    return data
 
 
 def jsonProcess(skill):
@@ -119,89 +115,111 @@ def jsonProcess(skill):
     return tmp
 
 
-def processScreenshot(image):
-    # title=cv2Process(image,0)
-    skill = cv2Process(image, 1)
+def processScreenshot(image, mode):
     data = None
+
+    # title=cv2Process(image,0)
+    skill = cv2Process(image, 1, mode)
+
     try:
-        if 2 <= len(skill) <= 6:
-            data = jsonProcess(skill)
+        if mode == 0:
+            if 2 <= len(skill) <= 6:
+                data = jsonProcess(skill)
+        else:
+            pass
     except Exception as e:
         tryEx(e)
-        data = None
-
     return data
 
 
-def cv2Process(img, type):
+def cv2Process(img, type, mode):
     # img = cv2.imread('GGG.PNG')
-
     dimensions = img.shape
-    count = 0
-    if type == 0:
-        img = img[round(dimensions[0] * 0.18):round(dimensions[0] / 3), round(dimensions[1] * 0.15):dimensions[1]]
+    if mode == 0:
+
+        count = 0
+        if type == 0:
+            img = img[round(dimensions[0] * 0.18):round(dimensions[0] / 3), round(dimensions[1] * 0.15):dimensions[1]]
+        else:
+            img = img[round(dimensions[0] / 4):round(dimensions[0] * 0.9),
+                  round(dimensions[1] * 0.1):round(dimensions[1] * 0.8)]
+        copy = img.copy()
+
+        alpha = 1.7
+        beta = 0
+        adjusted = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
+        img = cv2.cvtColor(adjusted, cv2.COLOR_RGB2GRAY)
+
+        if type == 0:
+            kernel = np.ones((2, 2), np.uint8)
+            binary = cv2.erode(img, kernel, iterations=1)
+            ret, binary = cv2.threshold(binary, 240, 255, cv2.THRESH_BINARY)
+
+        else:
+            kernel = np.ones((1, 1), np.uint8)
+            binary = cv2.dilate(img, kernel, iterations=2)
+            ret, binary = cv2.threshold(binary, 240, 255, cv2.THRESH_BINARY)
+
+        dim = binary.shape
+
+        img = cv2.resize(binary, (dim[1], dim[0]))
+
+        if type == 1:
+            counter, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(copy, counter, -1, (0, 0, 255), 3)
+
+            for i in counter:
+                # print( cv2.contourArea(i))
+                if cv2.contourArea(i) > 18000:
+                    count += 1
+        if count >= 2:
+            data = (pytesseract.image_to_string(img, lang="jpn", config='--psm 6 --oem 3'))
+        else:
+            data = ""
+        if type == 0:
+            data = data.replace(" ", "")
+            data = data.split("\n")
+            data.pop()
+        else:
+            data = data.split("\n")
+            data.pop()
+            if len(data) < count & count <= 7:
+                while len(data) != count:
+                    data.append("null")
+
+        # cv2.imshow('My Image', copy)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # print(count)
+        # print(len(data))
+        # print(data)
+        if count != len(data):
+            return []
+        else:
+            return data
+
     else:
-        img = img[round(dimensions[0] / 4):round(dimensions[0] * 0.9),
-              round(dimensions[1] * 0.1):round(dimensions[1] * 0.8)]
-    copy = img.copy()
-    alpha = 1.7
-    beta = 0
-    adjusted = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
-    img = cv2.cvtColor(adjusted, cv2.COLOR_RGB2GRAY)
+        img = img[round(dimensions[0] / 2.7):round(dimensions[0] * 0.79), round(dimensions[1] * 0.18):round(dimensions[1] * 0.69)]
+        copy = img.copy()
 
-    if type == 0:
-        kernel = np.ones((2, 2), np.uint8)
-        binary = cv2.erode(img, kernel, iterations=1)
-        ret, binary = cv2.threshold(binary, 240, 255, cv2.THRESH_BINARY)
-
-    else:
-        kernel = np.ones((1, 1), np.uint8)
-        binary = cv2.dilate(img, kernel, iterations=2)
-        ret, binary = cv2.threshold(binary, 240, 255, cv2.THRESH_BINARY)
-
-    dim = binary.shape
-
-    img = cv2.resize(binary, (dim[1], dim[0]))
-
-    if type == 1:
-        counter, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(copy, counter, -1, (0, 0, 255), 3)
-
-        for i in counter:
-            # print( cv2.contourArea(i))
-            if cv2.contourArea(i) > 18000:
-                count += 1
-    if count >= 2:
-        data = (pytesseract.image_to_string(img, lang="jpn", config='--psm 6 --oem 3'))
-    else:
-        data = ""
-    if type == 0:
-        data = data.replace(" ", "")
-        data = data.split("\n")
-        data.pop()
-    else:
-        data = data.split("\n")
-        data.pop()
-        if len(data) < count & count <= 7:
-            while len(data) != count:
-                data.append("null")
-
-    # cv2.imshow('My Image', copy)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # print(count)
-    # print(len(data))
-    # print(data)
-    if count != len(data):
-        return []
-    else:
-        return data
+        cv2.imshow('My Image', copy)
+        cv2.waitKey(1)
+        pass
 
 
 def randomColor():
     color = "#" + ''.join([random.choice('3456789ABC') for j in range(6)])
 
     return color
+
+
+class skillWindow(QMainWindow):
+    def __init__(self, parent=None):
+        try:
+            super(skillWindow, self).__init__(parent)
+            uic.loadUi("skill.ui", self)
+        except Exception as e:
+            tryEx(e)
 
 
 class UI(QMainWindow):
@@ -211,7 +229,7 @@ class UI(QMainWindow):
         config = json.load(config)
         checkApp = 0
 
-        super(UI, self).__init__()
+        super(UI, self).__init__(parent=None)
         self.setFixedSize(390, 570)
         self.checkMode = 0
         uic.loadUi("gui.ui", self)
@@ -238,6 +256,7 @@ class UI(QMainWindow):
         self.qTimer.setInterval(config["decetTime"])
         self.qTimer.timeout.connect(self.getSensorValue)
         self.qTimer.start()
+        self.skillWindow = skillWindow(self)
         self.show()
 
     def getSensorValue(self):
@@ -249,7 +268,7 @@ class UI(QMainWindow):
         except Exception as e:
             tryEx(e)
             checkApp = 1
-        if data is not None:
+        if data is not None and self.checkMode == 0:
             title = data["e"]
             choice = data["choices"]
             for i in reversed(range(self.vbox.count())):
@@ -271,6 +290,10 @@ class UI(QMainWindow):
             else:
                 self.alert.setFont(QFont('微軟正黑體 Light', 20))
             self.alert.setText(title)
+
+        elif data is not None and self.checkMode == 1:
+            pass
+
         else:
             if checkApp != 1:
                 self.alert.setText("檢測中...")
@@ -284,9 +307,11 @@ class UI(QMainWindow):
         if b.text() == "事件模式":
             if b.isChecked():
                 self.checkMode = 0
+                self.skillWindow.close()
         else:
             if b.isChecked():
                 self.checkMode = 1
+                self.skillWindow.show()
 
 
 def loadUi():
