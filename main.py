@@ -5,7 +5,6 @@ Created on Mon Mar  6 23:03:14 2023
 """
 import pygetwindow
 import pyautogui
-import sys
 import traceback
 import Levenshtein
 import pytesseract
@@ -20,6 +19,20 @@ from PyQt5.QtGui import QFont
 import json
 from ctypes import windll
 import random
+
+
+def empty():
+    pass
+
+
+# cv2.namedWindow('TrackBar')
+# cv2.resizeWindow('TrackBar', 640, 320)
+# cv2.createTrackbar('Hue Min', 'TrackBar', 0, 255, empty)
+# cv2.createTrackbar('Hue Max', 'TrackBar', 179, 255, empty)
+# cv2.createTrackbar('Sat Min', 'TrackBar', 0, 255, empty)
+# cv2.createTrackbar('Sat Max', 'TrackBar', 255, 255, empty)
+# cv2.createTrackbar('Val Min', 'TrackBar', 0, 255, empty)
+# cv2.createTrackbar('Val Max', 'TrackBar', 255, 255, empty)
 
 
 def screenshot(mode):
@@ -51,68 +64,90 @@ def screenshot(mode):
     return data
 
 
-def jsonProcess(skill):
-    data = open('./js/female_event_datas.json', 'r', encoding="utf-8")
-    data = json.load(data)
-    choice = []
-    tmp = None
+def jsonProcess(skill, mode):
+    if mode == 0:
+        data = open('./js/female_event_datas.json', 'r', encoding="utf-8")
+        data = json.load(data)
+        choice = []
+        tmp = None
 
-    for i in skill:
-        print("skill:--------------" + i + "---end")
-        choRule = round(len(i) / 2) - 1
-        if len(i) <= 3:
-            choRule = 1
-        for j in data:
+        for i in skill:
+            print("skill:--------------" + i + "---end")
+            choRule = round(len(i) / 2) - 1
+            if len(i) <= 3:
+                choRule = 1
+            for j in data:
 
-            for k in j["choices"]:
-                if len(skill) == len(j["choices"]):
-                    if len(i) - 2 <= len(k['n']) <= len(i) + 2:
-                        distance2 = Levenshtein.distance(i, k['n'])
-                        if distance2 <= choRule:
-                            j["distance2"] = distance2
-                            if j not in choice:
-                                choice.append(j)
-    if len(choice) >= 1:
-        for i in range(len(choice)):
-            for j in range(i + 1, len(choice)):
-                if choice[j]["distance2"] < choice[i]["distance2"]:
-                    tmp = choice[i]
-                    choice[i] = choice[j]
-                    choice[j] = tmp
-                elif choice[j]["distance2"] == choice[i]["distance2"]:
-                    tmpA = 0
-                    tmpB = 0
-                    for l in range(len(choice[i]["choices"])):
-                        # print("--------skill----------")
-                        # print(skill[l])
-                        # print("-----------------------")
-
-                        # print("--------target----------")
-                        # print(choice[i]["choices"][l]["n"])
-                        # print("-----------------------")
-                        tmpA += Levenshtein.distance(choice[i]["choices"][l]["n"], skill[l])
-                        # print(tmpA)
-                    for k in range(len(choice[j]["choices"])):
-                        # print("--------skill----------")
-                        # print(skill[k])
-                        # print("-----------------------")
-
-                        # print("--------target----------")
-                        # print(choice[j]["choices"][k]["n"])
-                        # print("-----------------------")
-                        tmpB += Levenshtein.distance(choice[j]["choices"][k]["n"], skill[k])
-                        # print(tmpB)
-
-                    if tmpB < tmpA:
+                for k in j["choices"]:
+                    if len(skill) == len(j["choices"]):
+                        if len(i) - 2 <= len(k['n']) <= len(i) + 2:
+                            distance2 = Levenshtein.distance(i, k['n'])
+                            if distance2 <= choRule:
+                                j["distance2"] = distance2
+                                if j not in choice:
+                                    choice.append(j)
+        if len(choice) >= 1:
+            for i in range(len(choice)):
+                for j in range(i + 1, len(choice)):
+                    if choice[j]["distance2"] < choice[i]["distance2"]:
                         tmp = choice[i]
                         choice[i] = choice[j]
                         choice[j] = tmp
+                    elif choice[j]["distance2"] == choice[i]["distance2"]:
+                        tmpA = 0
+                        tmpB = 0
+                        for l in range(len(choice[i]["choices"])):
+                            # print("--------skill----------")
+                            # print(skill[l])
+                            # print("-----------------------")
 
-    if len(choice) >= 1:
-        # print(choice)
-        tmp = choice[0]
-    # print (tmp)
-    return tmp
+                            # print("--------target----------")
+                            # print(choice[i]["choices"][l]["n"])
+                            # print("-----------------------")
+                            tmpA += Levenshtein.distance(choice[i]["choices"][l]["n"], skill[l])
+                            # print(tmpA)
+                        for k in range(len(choice[j]["choices"])):
+                            # print("--------skill----------")
+                            # print(skill[k])
+                            # print("-----------------------")
+
+                            # print("--------target----------")
+                            # print(choice[j]["choices"][k]["n"])
+                            # print("-----------------------")
+                            tmpB += Levenshtein.distance(choice[j]["choices"][k]["n"], skill[k])
+                            # print(tmpB)
+
+                        if tmpB < tmpA:
+                            tmp = choice[i]
+                            choice[i] = choice[j]
+                            choice[j] = tmp
+
+        if len(choice) >= 1:
+            # print(choice)
+            tmp = choice[0]
+        # print (tmp)
+        return tmp
+    else:
+        data = open('./js/skill_bak.json', 'r', encoding="utf-8")
+        data = json.load(data)
+        final = []
+
+        for i in skill:
+            for j in range(len(data)):
+
+                tmp = Levenshtein.distance(data[j]["skill"], i)
+                if len(data[j]["skill"]) <= 5:
+                    if tmp < 2:
+                        if data[j] not in final:
+                            final.append(data[j])
+                elif tmp < 2:
+                    # print(tmp)
+                    # print(data[j]["skill"], )
+                    if data[j] not in final:
+                        final.append(data[j])
+
+                    # print(tmp)
+        return final
 
 
 def processScreenshot(image, mode):
@@ -124,9 +159,9 @@ def processScreenshot(image, mode):
     try:
         if mode == 0:
             if 2 <= len(skill) <= 6:
-                data = jsonProcess(skill)
+                data = jsonProcess(skill, mode)
         else:
-            pass
+            data = jsonProcess(skill, mode)
     except Exception as e:
         tryEx(e)
     return data
@@ -135,6 +170,14 @@ def processScreenshot(image, mode):
 def cv2Process(img, type, mode):
     # img = cv2.imread('GGG.PNG')
     dimensions = img.shape
+    # h_min = cv2.getTrackbarPos('Hue Min', 'TrackBar')
+    # h_max = cv2.getTrackbarPos('Hue Max', 'TrackBar')
+    # s_min = cv2.getTrackbarPos('Sat Min', 'TrackBar')
+    # s_max = cv2.getTrackbarPos('Sat Max', 'TrackBar')
+    # v_min = cv2.getTrackbarPos('Val Min', 'TrackBar')
+    # v_max = cv2.getTrackbarPos('Val Max', 'TrackBar')
+    # print(h_min, h_max, s_min, s_max, v_min, v_max)
+
     if mode == 0:
 
         count = 0
@@ -199,12 +242,76 @@ def cv2Process(img, type, mode):
             return data
 
     else:
-        img = img[round(dimensions[0] / 2.7):round(dimensions[0] * 0.79), round(dimensions[1] * 0.18):round(dimensions[1] * 0.69)]
+        img = img[round(dimensions[0] / 2.7):round(dimensions[0] * 0.79),
+              round(dimensions[1] * 0.18):round(dimensions[1] * 0.69)]
         copy = img.copy()
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-        cv2.imshow('My Image', copy)
-        cv2.waitKey(1)
-        pass
+        lower = np.array([0, 0, 0])
+        upper = np.array([179, 255, 244])
+        mask = cv2.inRange(hsv, lower, upper)
+        result = cv2.bitwise_and(img, img, mask=mask)
+        # 0 179 0 255 0 244
+        count = 0
+
+        # cv2.imshow('img', img)
+        # cv2.imshow('hsv', hsv)
+        # cv2.imshow('mask', mask)
+        # cv2.imshow('reslut', result)
+
+        alpha = 1.7
+        beta = 0
+        adjusted = cv2.convertScaleAbs(result, alpha=alpha, beta=beta)
+        img = cv2.cvtColor(adjusted, cv2.COLOR_RGB2GRAY)
+
+        kernel = np.ones((1, 1), np.uint8)
+        binary = cv2.erode(img, kernel, iterations=1)
+        ret, binary = cv2.threshold(binary, 0, 255, cv2.THRESH_BINARY)
+
+        dim = binary.shape
+
+        img = cv2.resize(binary, (dim[1], dim[0]))
+
+        counter, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(copy, counter, -1, (0, 0, 255), 1)
+        data = []
+        for i in counter:
+
+            x, y, w, h = cv2.boundingRect(i)
+            if cv2.contourArea(i) > 35000:
+                skillCut = copy[y:y + h - 100, x:x + w]
+
+                # cv2.imshow(str(count), skillCut)
+                count += 1
+
+                imgC = cv2.resize(skillCut, (0, 0), fx=2, fy=2)
+                hsv = cv2.cvtColor(imgC, cv2.COLOR_BGR2HSV)
+
+                # lowerS = np.array([h_min, s_min, v_min])
+                # upperS = np.array([h_max, s_max, v_max])
+                lowerS = np.array([0, 150, 73])
+                upperS = np.array([24, 213, 152])
+                # 0 24 150 213 73 152
+                maskS = cv2.inRange(hsv, lowerS, upperS)
+
+                heightMS, widthMS = maskS.shape
+
+                if heightMS < 100:
+                    # print(pytesseract.image_to_string(maskS, lang="jpn"))
+                    skillO = pytesseract.image_to_string(maskS, lang="jpn")
+                    skillO = skillO.replace(" ", "")
+                    skillO = skillO.split("\n")
+                    data.append(skillO[0])
+                    resultS = cv2.bitwise_and(imgC, imgC, mask=maskS)
+
+                    # cv2.imshow(str(count)+'img', imgC)
+                    # cv2.imshow(str(count) + 'mask', maskS)
+                    # cv2.imshow(str(count) + 'res', resultS)
+                    # cv2.waitKey(1)
+
+        print(data)
+        return data
+
 
 
 def randomColor():
@@ -218,8 +325,33 @@ class skillWindow(QMainWindow):
         try:
             super(skillWindow, self).__init__(parent)
             uic.loadUi("skill.ui", self)
+            self.vbox = self.findChild(QVBoxLayout, "vbox")
+            self.dataHistory = []
+            pass
         except Exception as e:
             tryEx(e)
+
+    def generate(self, data):
+        # print(1)
+        # print(self.vbox)
+
+        for i in data:
+            if i not in self.dataHistory:
+                self.dataHistory.append(i)
+
+        for i in reversed(range(self.vbox.count())):
+            self.vbox.itemAt(i).widget().setParent(None)
+        for i in self.dataHistory:
+            labelStr = i["skill"] + "    " + i["zhSkill"] + "\r\n" + i["cond"]
+            labelStr = labelStr.replace("  ", "\r\n")
+            labelStr = labelStr.replace("<hr>", "\r\n")
+            lb = QLabel(labelStr, self)
+            lb.setFixedHeight(140)
+
+            lb.setStyleSheet('background-color:' + ' #67a8da' + '; color:white; font-size:12px;')
+            lb.setAlignment(QtCore.Qt.AlignCenter)
+            self.vbox.addWidget(lb)
+        pass
 
 
 class UI(QMainWindow):
@@ -292,6 +424,9 @@ class UI(QMainWindow):
             self.alert.setText(title)
 
         elif data is not None and self.checkMode == 1:
+
+            skillWindow.generate(self.skillWindow, data)
+
             pass
 
         else:
